@@ -34,6 +34,20 @@
       </div>
     </div>
 
+    <div id="nextWorldModal" class="hidden">
+      <div class="modal-card">
+        <h2>World complete ✅</h2>
+        <p id="worldSummary">Ready to create the next world?</p>
+        <p><strong>Suggested prompt:</strong> <span id="suggestedPrompt"></span></p>
+        <input id="nextWorldInput" type="text" placeholder="Describe your next world..." />
+        <div class="modal-actions">
+          <button id="useSuggestionBtn">Use suggestion</button>
+          <button id="generateWorldBtn">Generate next world</button>
+        </div>
+        <p class="small-line">World Colloquium Count: <strong id="worldCount">1</strong></p>
+      </div>
+    </div>
+
     <audio id="beat" loop preload="auto" src="https://cdn.pixabay.com/download/audio/2022/08/02/audio_88447f4ca6.mp3?filename=deep-ambient-116199.mp3"></audio>
 
     <script type="module" src="./main.js"></script>

@@ -54,6 +54,25 @@ canvas { display: block; }
   border-radius: 10px; padding: 10px 12px; font-size: 12px;
 }
 
+#nextWorldModal {
+  position: fixed; inset: 0; z-index: 30;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(1, 6, 15, 0.72); backdrop-filter: blur(4px);
+}
+.modal-card {
+  width: min(92vw, 560px); background: #0f1730; border: 1px solid #2f4187;
+  border-radius: 14px; padding: 16px; color: #e9edff;
+}
+.modal-card input {
+  width: 100%; margin-top: 8px; margin-bottom: 10px; border-radius: 8px;
+  border: 1px solid #4258ad; background: #0a1230; color: white; padding: 10px;
+}
+.modal-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.modal-actions button {
+  border: 1px solid #4d6cff; background: #1f2a57; color: white; border-radius: 8px; padding: 9px 12px;
+}
+.small-line { color: #b8c9ff; font-size: 12px; }
+
 @media (pointer: fine) {
   #mobileControls { display: none !important; }
 }

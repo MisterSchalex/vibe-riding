@@ -9,6 +9,14 @@ const phaseLabel = document.getElementById('phaseLabel');
 const controlsHint = document.getElementById('controlsHint');
 const beat = document.getElementById('beat');
 
+const nextWorldModal = document.getElementById('nextWorldModal');
+const worldSummary = document.getElementById('worldSummary');
+const suggestedPromptEl = document.getElementById('suggestedPrompt');
+const nextWorldInput = document.getElementById('nextWorldInput');
+const useSuggestionBtn = document.getElementById('useSuggestionBtn');
+const generateWorldBtn = document.getElementById('generateWorldBtn');
+const worldCountEl = document.getElementById('worldCount');
+
 const mobileControls = document.getElementById('mobileControls');
 const movePad = document.getElementById('movePad');
 const moveStick = document.getElementById('moveStick');
@@ -121,6 +129,10 @@ let improbableChain = [];
 let improbableTimer = 0;
 let orderMode = false;
 let orderGateOpen = 0;
+let worldIndex = 1;
+let worldPrompt = 'Bauhaus resonance in green light';
+let worldCompleted = false;
+
 const rhymeLines = {
   enter: [
     'in night we roam, in light we home',
@@ -143,6 +155,89 @@ function pickLine(kind) {
   const list = rhymeLines[kind] || rhymeLines.enter;
   return list[Math.floor(Math.random() * list.length)];
 }
+
+function suggestNextPrompt(currentPrompt) {
+  const pool = [
+    `A crystal desert temple echoing ${currentPrompt}`,
+    `An underwater neon archive with ritual gates`,
+    `A gravity-bending monolith garden with choir pulses`,
+    `A midnight solar cathedral where geometry sings`
+  ];
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function applyWorldTheme(prompt, index) {
+  const p = prompt.toLowerCase();
+  let palette = { clear: 0xaed0b2, room: 0xcfe8d1, point: 0x8ed9b1, rimHue: 0.38 };
+
+  if (p.includes('neon') || p.includes('cyber')) palette = { clear: 0x0f1028, room: 0x1b2147, point: 0x8a7dff, rimHue: 0.73 };
+  if (p.includes('desert') || p.includes('sand')) palette = { clear: 0xb79e7d, room: 0xd8c2a4, point: 0xf0b77c, rimHue: 0.09 };
+  if (p.includes('ocean') || p.includes('underwater')) palette = { clear: 0x315c74, room: 0x8bb8be, point: 0x57d1c7, rimHue: 0.5 };
+
+  roomBox.material.color.setHex(palette.room);
+  point.color.setHex(palette.point);
+  rimLight.color.setHSL(palette.rimHue, 0.75, 0.72);
+  renderer.setClearColor(palette.clear);
+
+  beat.playbackRate = 1 + Math.min(0.16, index * 0.01);
+  worldSummary.textContent = `World ${index} complete. Create World ${index + 1}.`;
+}
+
+function resetForNextWorld(prompt) {
+  worldIndex += 1;
+  worldPrompt = prompt;
+  worldCompleted = false;
+
+  setPhase('space');
+  room.visible = false;
+  harmonyRoom.visible = false;
+  chamber.visible = false;
+  inHarmony = false;
+  chamberUnlocked = false;
+  ritualStep = 0;
+  ritualTimer = 0;
+  clickPower = 0;
+  warpT = 0;
+  dropActive = false;
+  orderMode = false;
+  orderGateOpen = 0;
+  touchMove.x = 0;
+  touchMove.y = 0;
+  camera.position.set(0, 0, 18);
+  yaw = 0;
+  pitch = 0;
+
+  nebula.visible = true;
+  nebulaHalo.visible = true;
+  nebulaDust.visible = true;
+  nebula.material.opacity = 0.82;
+  nebula.material.emissiveIntensity = 1;
+  nebula.scale.setScalar(1);
+  nebulaCore.material.opacity = 0.7;
+  nebulaHalo.material.opacity = 0.45;
+  nebulaDust.material.opacity = 0.7;
+
+  overlay.style.background = 'radial-gradient(circle at 50% 50%, rgba(22,34,88,0.18), rgba(0,0,0,0.7))';
+  statusEl.textContent = `World ${worldIndex}: find the nebula.`;
+  nextWorldModal.classList.add('hidden');
+  worldCountEl.textContent = String(worldIndex);
+
+  applyWorldTheme(worldPrompt, worldIndex);
+}
+
+function completeWorld() {
+  if (worldCompleted) return;
+  worldCompleted = true;
+  const suggestion = suggestNextPrompt(worldPrompt);
+  suggestedPromptEl.textContent = suggestion;
+  nextWorldInput.value = '';
+  worldCountEl.textContent = String(worldIndex);
+  worldSummary.textContent = `World ${worldIndex} complete. Create World ${worldIndex + 1}.`;
+  nextWorldModal.classList.remove('hidden');
+}
+
+worldCountEl.textContent = String(worldIndex);
+suggestedPromptEl.textContent = suggestNextPrompt(worldPrompt);
 
 for (let i = 0; i < 5; i++) {
   const floor = new THREE.Mesh(
@@ -271,6 +366,16 @@ startBtn.addEventListener('click', async () => {
   try { beat.volume = 0.45; await beat.play(); } catch {}
 });
 
+useSuggestionBtn.addEventListener('click', () => {
+  nextWorldInput.value = suggestedPromptEl.textContent || '';
+});
+
+generateWorldBtn.addEventListener('click', () => {
+  const prompt = (nextWorldInput.value || suggestedPromptEl.textContent || '').trim();
+  if (!prompt) return;
+  resetForNextWorld(prompt);
+});
+
 window.addEventListener('mousemove', (e) => {
   mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -333,6 +438,16 @@ function handlePrimaryAction() {
   }
 
   if (phase === 'bauhaus') {
+    if (inHarmony) {
+      const finishHits = raycaster.intersectObject(harmonyRing, false);
+      if (finishHits.length) {
+        statusEl.textContent = 'world resolved — opening next crate';
+        triggerAudioAccent(1.4);
+        completeWorld();
+        return;
+      }
+    }
+
     const hits = raycaster.intersectObjects(interactives, false);
     if (hits.length) {
       const obj = hits[0].object;
