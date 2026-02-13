@@ -265,10 +265,9 @@ startBtn.addEventListener('click', async () => {
   hud.classList.remove('hidden');
   startBtn.classList.add('hidden');
   if (isTouchDevice) {
-    mobileControls.classList.remove('hidden');
-    controlsHint.textContent = 'Touch: MOVE pad + LOOK pad · buttons: Interact/Drop/Order';
+    controlsHint.textContent = 'Mobile: swipe up/down to move · swipe left/right to look · tap to interact';
   }
-  statusEl.textContent = 'Find the nebula. Click it.';
+  statusEl.textContent = 'Find the nebula. Tap it.';
   try { beat.volume = 0.45; await beat.play(); } catch {}
 });
 
@@ -391,90 +390,73 @@ function handlePrimaryAction() {
 window.addEventListener('click', handlePrimaryAction);
 
 if (isTouchDevice) {
-  // Default aim to center for touch interactions
+  // Simplified swipe controls for mobile:
+  // swipe up/down = forward/backward movement, swipe left/right = camera look.
   mouse.set(0, 0);
+  mobileControls.classList.add('hidden');
 
-  const startMove = (t) => {
-    const rect = movePad.getBoundingClientRect();
-    touchMove.active = true;
-    touchMove.centerX = rect.left + rect.width / 2;
-    touchMove.centerY = rect.top + rect.height / 2;
-    const dx = t.clientX - touchMove.centerX;
-    const dy = t.clientY - touchMove.centerY;
-    touchMove.x = THREE.MathUtils.clamp(dx / (rect.width * 0.35), -1, 1);
-    touchMove.y = THREE.MathUtils.clamp(dy / (rect.height * 0.35), -1, 1);
-    moveStick.style.left = `${50 + touchMove.x * 30}%`;
-    moveStick.style.top = `${50 + touchMove.y * 30}%`;
-  };
+  let touchActive = false;
+  let startX = 0;
+  let startY = 0;
+  let lastX = 0;
+  let lastY = 0;
+  let movedFar = false;
 
-  const stopMove = () => {
-    touchMove.active = false;
-    touchMove.x = 0;
-    touchMove.y = 0;
-    moveStick.style.left = 'calc(50% - 19px)';
-    moveStick.style.top = 'calc(50% - 19px)';
-  };
-
-  movePad.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    startMove(e.touches[0]);
-  }, { passive: false });
-
-  movePad.addEventListener('touchmove', (e) => {
-    e.preventDefault();
-    startMove(e.touches[0]);
-  }, { passive: false });
-
-  movePad.addEventListener('touchend', stopMove);
-  movePad.addEventListener('touchcancel', stopMove);
-
-  let lookActive = false;
-  let lookLastX = 0;
-  let lookLastY = 0;
-
-  lookPad.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    lookActive = true;
-    lookLastX = e.touches[0].clientX;
-    lookLastY = e.touches[0].clientY;
-  }, { passive: false });
-
-  lookPad.addEventListener('touchmove', (e) => {
-    e.preventDefault();
-    if (!lookActive) return;
+  window.addEventListener('touchstart', (e) => {
+    if (!started) return;
     const t = e.touches[0];
-    const dx = t.clientX - lookLastX;
-    const dy = t.clientY - lookLastY;
-    lookLastX = t.clientX;
-    lookLastY = t.clientY;
+    touchActive = true;
+    movedFar = false;
+    startX = lastX = t.clientX;
+    startY = lastY = t.clientY;
+    mouse.x = (t.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(t.clientY / window.innerHeight) * 2 + 1;
+  }, { passive: true });
 
+  window.addEventListener('touchmove', (e) => {
+    if (!started || !touchActive) return;
+    const t = e.touches[0];
+    const dx = t.clientX - lastX;
+    const totalY = t.clientY - startY;
+
+    // Horizontal swipe => look
     if (phase === 'bauhaus') {
-      yaw -= dx * 0.006;
-      pitch -= dy * 0.0045;
-      pitch = Math.max(-1.1, Math.min(1.1, pitch));
+      yaw -= dx * 0.0062;
     }
 
+    // Vertical swipe => move (up = forward, down = backward)
+    touchMove.y = THREE.MathUtils.clamp(totalY / 120, -1, 1);
+
+    if (Math.abs(t.clientX - startX) > 12 || Math.abs(t.clientY - startY) > 12) {
+      movedFar = true;
+    }
+
+    lastX = t.clientX;
+    lastY = t.clientY;
     mouse.x = (t.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(t.clientY / window.innerHeight) * 2 + 1;
     idleMs = 0;
     hint.classList.add('hidden');
+    e.preventDefault();
   }, { passive: false });
 
-  lookPad.addEventListener('touchend', () => { lookActive = false; });
-  lookPad.addEventListener('touchcancel', () => { lookActive = false; });
+  window.addEventListener('touchend', () => {
+    if (!started) return;
 
-  interactBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    handlePrimaryAction();
-  });
-  dropBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    triggerBeatDrop();
-  });
-  orderBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    toggleOrderMode();
-  });
+    // Tap (little movement) = interact
+    if (!movedFar) {
+      handlePrimaryAction();
+    }
+
+    touchActive = false;
+    touchMove.y = 0;
+    touchMove.x = 0;
+  }, { passive: true });
+
+  // Keep explicit buttons as optional fallback when needed
+  interactBtn.addEventListener('click', (e) => { e.preventDefault(); handlePrimaryAction(); });
+  dropBtn.addEventListener('click', (e) => { e.preventDefault(); triggerBeatDrop(); });
+  orderBtn.addEventListener('click', (e) => { e.preventDefault(); toggleOrderMode(); });
 }
 
 let warpT = 0;
