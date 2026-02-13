@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vibe Riding — Prototype</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="overlay">
+      <h1>Vibe Riding</h1>
+      <p id="status">Drift through space. Find the nebula.</p>
+      <button id="startBtn">Enter with sound</button>
+      <div id="hint" class="hidden">click it</div>
+    </div>
+
+    <div id="hud" class="hidden">
+      <span>Phase: <strong id="phaseLabel">space</strong></span>
+      <span>WASD + Mouse drag · M = mic check drop · O = open for order</span>
+    </div>
+
+    <audio id="beat" loop preload="auto" src="https://cdn.pixabay.com/download/audio/2022/08/02/audio_88447f4ca6.mp3?filename=deep-ambient-116199.mp3"></audio>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
