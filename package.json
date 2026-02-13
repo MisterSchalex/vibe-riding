@@ -1,0 +1,14 @@
+{
+  "name": "vibe-riding",
+  "version": "2.0.0",
+  "description": "Vibe Riding — permanent world chain experience",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.7.0",
+    "express": "^4.21.0"
+  }
+}

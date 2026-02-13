@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vibe Riding — Prototype</title>
+    <title>Vibe Riding — World Chain</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -17,6 +17,40 @@
     <div id="hud" class="hidden">
       <span>Phase: <strong id="phaseLabel">space</strong></span>
       <span id="controlsHint">WASD + Mouse drag · M = mic check drop · O = open for order</span>
+    </div>
+
+    <!-- World Creation UI — appears after harmony -->
+    <div id="createPanel" class="hidden">
+      <div id="createInner">
+        <h2>Your World Awaits</h2>
+        <p id="createStatus">You reached harmony. Now shape the next world in the chain.</p>
+        <textarea id="worldPrompt" placeholder="Describe your world... (colors, mood, shapes, vibes)" maxlength="500" rows="3"></textarea>
+        <div id="charCount">0 / 500</div>
+        <button id="createBtn">Create World</button>
+        <button id="closeCreateBtn">Not yet</button>
+        <div id="lockIndicator" class="hidden">
+          <span class="lock-icon">&#x1F512;</span>
+          <span id="lockMsg">ES KANN NUR EINEN GEBEN — someone is creating right now</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- World Chain Browser -->
+    <div id="chainPanel" class="hidden">
+      <div id="chainHeader">
+        <h3>World Chain</h3>
+        <span id="chainCount">0 worlds</span>
+        <button id="closeChainBtn">&times;</button>
+      </div>
+      <div id="chainList"></div>
+    </div>
+
+    <!-- Chain nav bar -->
+    <div id="chainNav" class="hidden">
+      <button id="prevWorldBtn">&laquo; Prev World</button>
+      <span id="worldIndicator">Original</span>
+      <button id="nextWorldBtn">Next World &raquo;</button>
+      <button id="chainBrowseBtn">Chain</button>
     </div>
 
     <div id="mobileControls" class="hidden">
