@@ -300,7 +300,7 @@ function buildWorld(params) {
           emissiveIntensity: 0.25
         })
       );
-      beacon.position.set((i % 2 ? -1 : 1) * (5.6 - i * 0.5), floorY - 0.2, -1.6 + i * 0.3);
+      beacon.position.set((i % 2 ? -1 : 1) * (5.6 - i * 0.5), floorY + 1.2, -1.6 + i * 0.3);
       beacon.userData = { active: 0, base: beacon.material.emissive.clone() };
       building.add(beacon);
       interactives.push(beacon);
