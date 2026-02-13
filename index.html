@@ -16,7 +16,22 @@
 
     <div id="hud" class="hidden">
       <span>Phase: <strong id="phaseLabel">space</strong></span>
-      <span>WASD + Mouse drag · M = mic check drop · O = open for order</span>
+      <span id="controlsHint">WASD + Mouse drag · M = mic check drop · O = open for order</span>
+    </div>
+
+    <div id="mobileControls" class="hidden">
+      <div id="movePad" class="pad">
+        <div class="pad-label">MOVE</div>
+        <div id="moveStick" class="stick"></div>
+      </div>
+      <div id="lookPad" class="pad">
+        <div class="pad-label">LOOK</div>
+      </div>
+      <div id="mobileButtons">
+        <button id="interactBtn">Interact</button>
+        <button id="dropBtn">Drop</button>
+        <button id="orderBtn">Order</button>
+      </div>
     </div>
 
     <audio id="beat" loop preload="auto" src="https://cdn.pixabay.com/download/audio/2022/08/02/audio_88447f4ca6.mp3?filename=deep-ambient-116199.mp3"></audio>

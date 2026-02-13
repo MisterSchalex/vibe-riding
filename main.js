@@ -6,7 +6,17 @@ const startBtn = document.getElementById('startBtn');
 const hint = document.getElementById('hint');
 const hud = document.getElementById('hud');
 const phaseLabel = document.getElementById('phaseLabel');
+const controlsHint = document.getElementById('controlsHint');
 const beat = document.getElementById('beat');
+
+const mobileControls = document.getElementById('mobileControls');
+const movePad = document.getElementById('movePad');
+const moveStick = document.getElementById('moveStick');
+const lookPad = document.getElementById('lookPad');
+const interactBtn = document.getElementById('interactBtn');
+const dropBtn = document.getElementById('dropBtn');
+const orderBtn = document.getElementById('orderBtn');
+const isTouchDevice = window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x02040b, 45, 200);
@@ -236,16 +246,28 @@ let pitch = 0;
 const keys = {};
 const moveVelocity = new THREE.Vector3();
 const desiredMove = new THREE.Vector3();
+const touchMove = { active: false, x: 0, y: 0, centerX: 0, centerY: 0 };
 
 function setPhase(p) {
   phase = p;
   phaseLabel.textContent = p;
 }
 
+function toggleOrderMode() {
+  if (phase !== 'bauhaus') return;
+  orderMode = !orderMode;
+  statusEl.textContent = orderMode ? 'bauhaus world: open for order' : 'bauhaus world: open for flow';
+  triggerAudioAccent(orderMode ? 1.2 : 0.8);
+}
+
 startBtn.addEventListener('click', async () => {
   started = true;
   hud.classList.remove('hidden');
   startBtn.classList.add('hidden');
+  if (isTouchDevice) {
+    mobileControls.classList.remove('hidden');
+    controlsHint.textContent = 'Touch: MOVE pad + LOOK pad · buttons: Interact/Drop/Order';
+  }
   statusEl.textContent = 'Find the nebula. Click it.';
   try { beat.volume = 0.45; await beat.play(); } catch {}
 });
@@ -268,11 +290,7 @@ window.addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
   keys[k] = true;
   if (k === 'm') triggerBeatDrop();
-  if (k === 'o' && phase === 'bauhaus') {
-    orderMode = !orderMode;
-    statusEl.textContent = orderMode ? 'bauhaus world: open for order' : 'bauhaus world: open for flow';
-    triggerAudioAccent(orderMode ? 1.2 : 0.8);
-  }
+  if (k === 'o') toggleOrderMode();
 });
 window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
 
@@ -297,7 +315,7 @@ function triggerBeatDrop(source = 'hotkey') {
   beat.volume = 0.2;
 }
 
-window.addEventListener('click', () => {
+function handlePrimaryAction() {
   if (!started) return;
 
   raycaster.setFromCamera(mouse, camera);
@@ -327,9 +345,7 @@ window.addEventListener('click', () => {
       if (inHarmony) {
         statusEl.textContent = pickLine('click');
 
-        // "Unlikely on top of probable": after probable chamber unlock,
-        // hit beacons in a rare combo while moving to trigger hidden beat drop.
-        const movingNow = keys['w'] || keys['a'] || keys['s'] || keys['d'];
+        const movingNow = keys['w'] || keys['a'] || keys['s'] || keys['d'] || Math.abs(touchMove.x) > 0.22 || Math.abs(touchMove.y) > 0.22;
         improbableTimer = 2.8;
         improbableChain.push({ idx, moving: movingNow });
         if (improbableChain.length > 3) improbableChain.shift();
@@ -370,7 +386,96 @@ window.addEventListener('click', () => {
       }
     }
   }
-});
+}
+
+window.addEventListener('click', handlePrimaryAction);
+
+if (isTouchDevice) {
+  // Default aim to center for touch interactions
+  mouse.set(0, 0);
+
+  const startMove = (t) => {
+    const rect = movePad.getBoundingClientRect();
+    touchMove.active = true;
+    touchMove.centerX = rect.left + rect.width / 2;
+    touchMove.centerY = rect.top + rect.height / 2;
+    const dx = t.clientX - touchMove.centerX;
+    const dy = t.clientY - touchMove.centerY;
+    touchMove.x = THREE.MathUtils.clamp(dx / (rect.width * 0.35), -1, 1);
+    touchMove.y = THREE.MathUtils.clamp(dy / (rect.height * 0.35), -1, 1);
+    moveStick.style.left = `${50 + touchMove.x * 30}%`;
+    moveStick.style.top = `${50 + touchMove.y * 30}%`;
+  };
+
+  const stopMove = () => {
+    touchMove.active = false;
+    touchMove.x = 0;
+    touchMove.y = 0;
+    moveStick.style.left = 'calc(50% - 19px)';
+    moveStick.style.top = 'calc(50% - 19px)';
+  };
+
+  movePad.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    startMove(e.touches[0]);
+  }, { passive: false });
+
+  movePad.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    startMove(e.touches[0]);
+  }, { passive: false });
+
+  movePad.addEventListener('touchend', stopMove);
+  movePad.addEventListener('touchcancel', stopMove);
+
+  let lookActive = false;
+  let lookLastX = 0;
+  let lookLastY = 0;
+
+  lookPad.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    lookActive = true;
+    lookLastX = e.touches[0].clientX;
+    lookLastY = e.touches[0].clientY;
+  }, { passive: false });
+
+  lookPad.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (!lookActive) return;
+    const t = e.touches[0];
+    const dx = t.clientX - lookLastX;
+    const dy = t.clientY - lookLastY;
+    lookLastX = t.clientX;
+    lookLastY = t.clientY;
+
+    if (phase === 'bauhaus') {
+      yaw -= dx * 0.006;
+      pitch -= dy * 0.0045;
+      pitch = Math.max(-1.1, Math.min(1.1, pitch));
+    }
+
+    mouse.x = (t.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(t.clientY / window.innerHeight) * 2 + 1;
+    idleMs = 0;
+    hint.classList.add('hidden');
+  }, { passive: false });
+
+  lookPad.addEventListener('touchend', () => { lookActive = false; });
+  lookPad.addEventListener('touchcancel', () => { lookActive = false; });
+
+  interactBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    handlePrimaryAction();
+  });
+  dropBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    triggerBeatDrop();
+  });
+  orderBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    toggleOrderMode();
+  });
+}
 
 let warpT = 0;
 const warpState = {
@@ -397,11 +502,16 @@ function updateBauhausControls(dt) {
   const right = new THREE.Vector3(forward.z, 0, -forward.x);
   const accel = 20;
 
+  const forwardOn = keys['w'] || touchMove.y < -0.22;
+  const backOn = keys['s'] || touchMove.y > 0.22;
+  const leftOn = keys['a'] || touchMove.x < -0.22;
+  const rightOn = keys['d'] || touchMove.x > 0.22;
+
   desiredMove.set(0, 0, 0);
-  if (keys['w']) desiredMove.add(forward);
-  if (keys['s']) desiredMove.addScaledVector(forward, -1);
-  if (keys['a']) desiredMove.addScaledVector(right, -1);
-  if (keys['d']) desiredMove.add(right);
+  if (forwardOn) desiredMove.add(forward);
+  if (backOn) desiredMove.addScaledVector(forward, -1);
+  if (leftOn) desiredMove.addScaledVector(right, -1);
+  if (rightOn) desiredMove.add(right);
   if (desiredMove.lengthSq() > 0) desiredMove.normalize();
 
   moveVelocity.lerp(desiredMove.multiplyScalar(accel * dt), 0.18);
@@ -568,7 +678,7 @@ function animate() {
         p.scale.y = 1 + Math.sin(performance.now() * 0.0012 + i) * 0.06;
       }
 
-      const moving = keys['w'] || keys['a'] || keys['s'] || keys['d'];
+      const moving = keys['w'] || keys['a'] || keys['s'] || keys['d'] || Math.abs(touchMove.x) > 0.22 || Math.abs(touchMove.y) > 0.22;
       if (moving && rhymeTimer > 3.5) {
         rhymeTimer = 0;
         statusEl.textContent = pickLine('motion');
